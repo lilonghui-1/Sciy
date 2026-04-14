@@ -1,0 +1,202 @@
+# ============================================================
+# Python
+# ============================================================
+# 字节码文件
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# C 扩展
+*.egg-info/
+*.egg
+dist/
+build/
+eggs/
+sdist/
+develop-eggs/
+.installed.cfg
+
+# 虚拟环境
+.venv/
+venv/
+ENV/
+env/
+
+# 分发 / 打包
+*.whl
+
+# PyInstaller
+*.manifest
+*.spec
+
+# 单元测试 / 覆盖率
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+nosetests.xml
+pytest.ini
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre 类型检查器
+.pyre/
+
+# pytype 静态类型分析器
+.pytype/
+
+# ============================================================
+# Node.js / 前端
+# ============================================================
+# 依赖
+node_modules/
+.pnp
+.pnp.js
+
+# 构建输出
+dist/
+dist-ssr/
+build/
+
+# 本地环境文件
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 日志
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# 编辑器目录和文件
+.vscode/
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
+*~
+
+# 操作系统文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ============================================================
+# Docker
+# ============================================================
+docker-compose.override.yml
+
+# ============================================================
+# 环境变量（安全）
+# ============================================================
+.env
+
+# ============================================================
+# 数据库
+# ============================================================
+*.sql
+*.db
+*.sqlite
+*.sqlite3
+
+# ============================================================
+# IDE / 编辑器
+# ============================================================
+# VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# JetBrains IDE (PyCharm, WebStorm, IntelliJ)
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+auto-save-list
+tramp
+
+# ============================================================
+# 杂项
+# ============================================================
+# 备份文件
+*.bak
+*.tmp
+*.orig
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# poetry
+poetry.lock
+
+# ruff
+.ruff_cache/
+
+# celery
+celerybeat-schedule
+celerybeat-schedule.db
+
+# macOS
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# 日志文件
+logs/
+*.log
+
+# 上传文件
+uploads/

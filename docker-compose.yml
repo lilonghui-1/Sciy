@@ -1,0 +1,143 @@
+# ============================================================
+# 库存管理系统 - 生产环境 Docker Compose 配置
+# 使用方式: docker compose up -d --build
+# ============================================================
+
+services:
+  # ----------------------------------------------------------
+  # PostgreSQL + TimescaleDB 时序数据库
+  # ----------------------------------------------------------
+  db:
+    image: timescale/timescaledb:latest-pg16
+    container_name: inventory_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: inventory_db
+      POSTGRES_USER: inventory_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-inventory_secret_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inventory_user -d inventory_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - inventory_network
+
+  # ----------------------------------------------------------
+  # Redis 缓存 / 消息代理
+  # ----------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: inventory_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - inventory_network
+
+  # ----------------------------------------------------------
+  # FastAPI 后端服务
+  # ----------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: inventory_backend
+    restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - inventory_network
+
+  # ----------------------------------------------------------
+  # Celery 异步任务工作进程
+  # ----------------------------------------------------------
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: inventory_celery_worker
+    restart: unless-stopped
+    command: celery -A app.tasks worker -l info --concurrency 4 --max-tasks-per-child 1000
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    networks:
+      - inventory_network
+
+  # ----------------------------------------------------------
+  # Celery 定时任务调度器
+  # ----------------------------------------------------------
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: inventory_celery_beat
+    restart: unless-stopped
+    command: celery -A app.tasks beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    networks:
+      - inventory_network
+
+  # ----------------------------------------------------------
+  # Vue.js 前端 (Nginx 静态服务)
+  # ----------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: inventory_frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - inventory_network
+
+# ============================================================
+# 持久化存储卷
+# ============================================================
+volumes:
+  pgdata:
+    driver: local
+  redisdata:
+    driver: local
+
+# ============================================================
+# 网络
+# ============================================================
+networks:
+  inventory_network:
+    driver: bridge
