@@ -10,9 +10,8 @@ from __future__ import annotations
 from datetime import datetime
 
 from sqlalchemy import (
-    String, Integer, Float, Numeric, DateTime, ForeignKey,
+    String, Integer, Float, Numeric, DateTime, ForeignKey, JSON,
 )
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -82,7 +81,7 @@ class DemandForecast(Base):
         comment="模型名称",
     )
     model_params: Mapped[dict | None] = mapped_column(
-        JSONB,
+        JSON,
         nullable=True,
         comment="模型参数（JSON）",
     )

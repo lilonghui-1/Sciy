@@ -49,13 +49,13 @@ class Settings(BaseSettings):
         description="允许的跨域请求头",
     )
 
-    # ==================== 数据库配置（人大金仓 KingbaseES） ====================
+    # ==================== 数据库配置（达梦数据库 DM8） ====================
     database_url: str = Field(
-        default="postgresql+asyncpg://SYSTEM:SYSTEM@localhost:54321/inventory_db",
-        description="异步数据库连接 URL（KingbaseES 兼容 PostgreSQL 协议）",
+        default="dm+dmAsync://SYSDBA:SYSDBA001@localhost:5236/",
+        description="异步数据库连接 URL（达梦 DM8 + dmAsync 驱动）",
     )
     database_sync_url: str = Field(
-        default="postgresql+psycopg2://SYSTEM:SYSTEM@localhost:54321/inventory_db",
+        default="dm+dmPython://SYSDBA:SYSDBA001@localhost:5236/",
         description="同步数据库连接 URL（用于 Alembic 迁移）",
     )
     database_pool_size: int = Field(default=20, description="数据库连接池大小")

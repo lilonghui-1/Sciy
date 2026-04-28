@@ -9,8 +9,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import String, Boolean, Integer, Text, ForeignKey
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import String, Boolean, Integer, Text, ForeignKey, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -53,20 +52,20 @@ class AlertRule(TimestampMixin, Base):
         comment="规则类型: stockout/overstock/delay/turnover/custom",
     )
     conditions: Mapped[dict] = mapped_column(
-        JSONB,
+        JSON,
         nullable=False,
         comment="触发条件（JSON）",
     )
 
     # ==================== 通知配置 ====================
     notify_channels: Mapped[dict] = mapped_column(
-        JSONB,
+        JSON,
         nullable=False,
         default=lambda: ["in_app"],
         comment="通知渠道（JSON数组）",
     )
     notify_recipients: Mapped[dict | None] = mapped_column(
-        JSONB,
+        JSON,
         nullable=True,
         comment="通知接收人ID列表（JSON数组）",
     )

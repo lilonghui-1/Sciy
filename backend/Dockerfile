@@ -12,10 +12,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# 安装系统构建依赖（编译 psycopg2 等需要）
+# 安装系统构建依赖（编译 dmPython 等需要）
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    libpq-dev \
+    gcc \
     && rm -rf /var/lib/apt/lists/*
 
 # 创建并切换工作目录
@@ -38,9 +38,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PATH="/install/bin:${PATH}" \
     PYTHONPATH="/app"
 
-# 安装运行时系统依赖（仅需 libpq 运行库，不需要开发头文件）
+# 安装运行时系统依赖
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq5 \
     curl \
     && rm -rf /var/lib/apt/lists/*
 

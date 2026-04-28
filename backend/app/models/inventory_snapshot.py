@@ -5,15 +5,14 @@ from __future__ import annotations
 库存快照模型
 
 记录每个产品在每个仓库的库存状态快照。
-以时间维度存储和查询历史库存数据，支持人大金仓 KingbaseES。
+以时间维度存储和查询历史库存数据，支持达梦数据库 DM8。
 """
 
 from datetime import datetime
 
 from sqlalchemy import (
-    String, Integer, Numeric, DateTime, ForeignKey, Index,
+    String, Integer, Numeric, DateTime, ForeignKey, Index, JSON,
 )
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -91,7 +90,7 @@ class InventorySnapshot(Base):
         comment="数据来源: manual/erp/import",
     )
     extra_data: Mapped[dict | None] = mapped_column(
-        JSONB,
+        JSON,
         nullable=True,
         comment="扩展数据（JSON）",
     )

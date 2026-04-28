@@ -56,11 +56,11 @@ async def get_suppliers(
 
     if search:
         search_pattern = f"%{search}%"
-        from sqlalchemy import or_
+        from sqlalchemy import or_, func
         search_condition = or_(
-            Supplier.name.ilike(search_pattern),
-            Supplier.code.ilike(search_pattern),
-            Supplier.contact_person.ilike(search_pattern),
+            func.lower(Supplier.name).like(func.lower(search_pattern)),
+            func.lower(Supplier.code).like(func.lower(search_pattern)),
+            func.lower(Supplier.contact_person).like(func.lower(search_pattern)),
         )
         stmt = stmt.where(search_condition)
         count_stmt = count_stmt.where(search_condition)

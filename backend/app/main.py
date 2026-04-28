@@ -55,7 +55,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info(f"运行环境: {settings.app_env}")
     logger.info(f"调试模式: {settings.debug}")
     logger.info(f"API 前缀: {settings.api_v1_prefix}")
-    logger.info(f"数据库: 人大金仓 KingbaseES")
+    logger.info(f"数据库: 达梦数据库 DM8")
 
     logger.info("库存管理系统后端服务启动完成")
     logger.info("=" * 60)

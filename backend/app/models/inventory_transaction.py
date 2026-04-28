@@ -5,15 +5,14 @@ from __future__ import annotations
 库存事务模型
 
 记录所有库存变动操作，包括入库、出库、调整和调拨。
-以时间维度存储和查询历史事务数据，支持人大金仓 KingbaseES。
+以时间维度存储和查询历史事务数据，支持达梦数据库 DM8。
 """
 
 from datetime import datetime
 
 from sqlalchemy import (
-    String, Integer, Text, DateTime, ForeignKey,
+    String, Integer, Text, DateTime, ForeignKey, JSON,
 )
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -95,7 +94,7 @@ class InventoryTransaction(Base):
 
     # ==================== 扩展数据 ====================
     extra_data: Mapped[dict | None] = mapped_column(
-        JSONB,
+        JSON,
         nullable=True,
         comment="扩展数据（JSON）",
     )

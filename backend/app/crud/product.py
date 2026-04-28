@@ -77,10 +77,10 @@ class ProductCRUD(BaseCRUD[Product]):
             search_pattern = f"%{search}%"
             conditions.append(
                 or_(
-                    Product.name.ilike(search_pattern),
-                    Product.sku.ilike(search_pattern),
-                    Product.description.ilike(search_pattern),
-                    Product.barcode.ilike(search_pattern),
+                    func.lower(Product.name).like(func.lower(search_pattern)),
+                    func.lower(Product.sku).like(func.lower(search_pattern)),
+                    func.lower(Product.description).like(func.lower(search_pattern)),
+                    func.lower(Product.barcode).like(func.lower(search_pattern)),
                 )
             )
 

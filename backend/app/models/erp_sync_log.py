@@ -9,8 +9,7 @@ ERP同步日志模型
 
 from datetime import datetime
 
-from sqlalchemy import String, Integer, Text, DateTime
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import String, Integer, Text, DateTime, JSON
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -78,12 +77,12 @@ class ErpSyncLog(Base):
 
     # ==================== 请求与响应 ====================
     request_params: Mapped[dict | None] = mapped_column(
-        JSONB,
+        JSON,
         nullable=True,
         comment="请求参数（JSON）",
     )
     response_summary: Mapped[dict | None] = mapped_column(
-        JSONB,
+        JSON,
         nullable=True,
         comment="响应摘要（JSON）",
     )

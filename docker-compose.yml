@@ -5,22 +5,23 @@
 
 services:
   # ----------------------------------------------------------
-  # 人大金仓 KingbaseES 数据库（兼容 PostgreSQL 协议）
+  # 达梦数据库 DM8
   # ----------------------------------------------------------
   db:
-    image: kingbase/kingbasees:v8r6
+    image: dm8:latest
     container_name: inventory_db
     restart: unless-stopped
+    privileged: true
+    network_mode: host
     environment:
-      DB_USER: inventory_user
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-inventory_secret_password}
-      DB_NAME: inventory_db
-    ports:
-      - "54321:54321"
+      PAGE_SIZE: 32
+      CASE_SENSITIVE: 0
+      CHARSET: 1
+      SYSDBA_PWD: ${SYSDBA_PWD:-SYSDBA001}
     volumes:
-      - kbdata:/home/kingbase/userdata
+      - dmdata:/opt/dmdbms/data
     healthcheck:
-      test: ["CMD-SHELL", "ksql -U inventory_user -d inventory_db -c 'SELECT 1'"]
+      test: ["CMD-SHELL", "disql SYSDBA/SYSDBA001 -c 'SELECT 1 FROM DUAL'"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -130,7 +131,7 @@ services:
 # 持久化存储卷
 # ============================================================
 volumes:
-  kbdata:
+  dmdata:
     driver: local
   redisdata:
     driver: local

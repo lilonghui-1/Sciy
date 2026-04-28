@@ -2,8 +2,8 @@
 数据库引擎与会话管理
 
 提供异步 SQLAlchemy 引擎创建、会话工厂和 FastAPI 依赖注入。
-使用 asyncpg 作为异步驱动，支持连接池管理。
-兼容人大金仓 KingbaseES（基于 PostgreSQL 协议）。
+使用 dmAsync 作为异步驱动，支持连接池管理。
+兼容达梦数据库 DM8（通过 dmSQLAlchemy 方言）。
 """
 
 from collections.abc import AsyncGenerator
