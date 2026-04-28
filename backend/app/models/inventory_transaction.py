@@ -5,7 +5,7 @@ from __future__ import annotations
 库存事务模型
 
 记录所有库存变动操作，包括入库、出库、调整和调拨。
-设计为 TimescaleDB 超表，以时间维度高效存储和查询历史事务数据。
+以时间维度存储和查询历史事务数据，支持人大金仓 KingbaseES。
 """
 
 from datetime import datetime
@@ -24,7 +24,6 @@ class InventoryTransaction(Base):
     库存事务模型
 
     记录每次库存变动的详细信息，包括变动前后数量、操作类型和操作人。
-    通过 init_timescaledb 模块自动转换为 TimescaleDB 超表。
     """
 
     __tablename__ = "inventory_transactions"

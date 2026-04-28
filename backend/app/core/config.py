@@ -49,13 +49,13 @@ class Settings(BaseSettings):
         description="允许的跨域请求头",
     )
 
-    # ==================== 数据库配置 ====================
+    # ==================== 数据库配置（人大金仓 KingbaseES） ====================
     database_url: str = Field(
-        default="postgresql+asyncpg://postgres:postgres@localhost:5432/inventory_db",
-        description="异步数据库连接 URL",
+        default="postgresql+asyncpg://SYSTEM:SYSTEM@localhost:54321/inventory_db",
+        description="异步数据库连接 URL（KingbaseES 兼容 PostgreSQL 协议）",
     )
     database_sync_url: str = Field(
-        default="postgresql://postgres:postgres@localhost:5432/inventory_db",
+        default="postgresql+psycopg2://SYSTEM:SYSTEM@localhost:54321/inventory_db",
         description="同步数据库连接 URL（用于 Alembic 迁移）",
     )
     database_pool_size: int = Field(default=20, description="数据库连接池大小")

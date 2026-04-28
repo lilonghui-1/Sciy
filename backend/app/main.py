@@ -3,7 +3,6 @@ FastAPI 应用工厂模块
 
 创建并配置 FastAPI 应用实例，包含：
 - 应用生命周期管理（启动/关闭事件）
-- TimescaleDB 初始化
 - CORS 中间件配置
 - 路由注册
 - 全局异常处理器注册
@@ -21,7 +20,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.core.exceptions import register_exception_handlers
-from app.db.init_timescaledb import init_timescaledb
 from app.utils.websocket_manager import ws_manager
 
 # 配置日志
@@ -38,7 +36,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     应用生命周期管理器
 
     管理应用启动和关闭时的资源初始化与清理：
-    - 启动时：初始化 TimescaleDB 扩展和超表
+    - 启动时：输出系统配置信息
     - 关闭时：关闭数据库连接池
 
     Args:
@@ -57,14 +55,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info(f"运行环境: {settings.app_env}")
     logger.info(f"调试模式: {settings.debug}")
     logger.info(f"API 前缀: {settings.api_v1_prefix}")
-
-    # 初始化 TimescaleDB
-    try:
-        logger.info("正在初始化 TimescaleDB...")
-        await init_timescaledb()
-        logger.info("TimescaleDB 初始化完成")
-    except Exception as e:
-        logger.warning(f"TimescaleDB 初始化失败（将以普通模式运行）: {e}")
+    logger.info(f"数据库: 人大金仓 KingbaseES")
 
     logger.info("库存管理系统后端服务启动完成")
     logger.info("=" * 60)

@@ -3,6 +3,7 @@
 
 提供异步 SQLAlchemy 引擎创建、会话工厂和 FastAPI 依赖注入。
 使用 asyncpg 作为异步驱动，支持连接池管理。
+兼容人大金仓 KingbaseES（基于 PostgreSQL 协议）。
 """
 
 from collections.abc import AsyncGenerator

@@ -5,7 +5,7 @@ from __future__ import annotations
 库存快照模型
 
 记录每个产品在每个仓库的库存状态快照。
-设计为 TimescaleDB 超表，以时间维度高效存储和查询历史库存数据。
+以时间维度存储和查询历史库存数据，支持人大金仓 KingbaseES。
 """
 
 from datetime import datetime
@@ -24,7 +24,6 @@ class InventorySnapshot(Base):
     库存快照模型
 
     记录特定时间点的库存数量和金额信息。
-    通过 init_timescaledb 模块自动转换为 TimescaleDB 超表。
     """
 
     __tablename__ = "inventory_snapshots"
