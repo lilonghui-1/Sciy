@@ -56,6 +56,12 @@ class Product(TimestampMixin, Base):
         nullable=True,
         comment="产品分类",
     )
+    product_type: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="finished_good",
+        comment="产品类型: raw_material(原材料)/finished_good(产成品)",
+    )
     erp_code: Mapped[str | None] = mapped_column(
         String(50),
         nullable=True,
@@ -101,6 +107,12 @@ class Product(TimestampMixin, Base):
         nullable=False,
         default=14,
         comment="安全库存天数",
+    )
+    production_cycle_days: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=7,
+        comment="生产周期（天，仅产成品适用）",
     )
 
     # ==================== 状态 ====================

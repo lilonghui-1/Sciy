@@ -51,6 +51,22 @@ class AlertRule(TimestampMixin, Base):
         nullable=False,
         comment="规则类型: stockout/overstock/delay/turnover/custom",
     )
+    product_type: Mapped[str | None] = mapped_column(
+        String(20),
+        nullable=True,
+        index=True,
+        comment="适用产品类型: raw_material/finished_good，为空表示全部",
+    )
+    category_scope: Mapped[str | None] = mapped_column(
+        String(200),
+        nullable=True,
+        comment="适用品类（逗号分隔），为空表示全部品类",
+    )
+    aging_tier_scope: Mapped[str | None] = mapped_column(
+        String(20),
+        nullable=True,
+        comment="适用库龄分层: normal/attention/slow_moving，为空表示全部",
+    )
     conditions: Mapped[dict] = mapped_column(
         JSON,
         nullable=False,

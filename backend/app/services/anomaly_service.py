@@ -252,6 +252,15 @@ class AnomalyService:
         """
         logger.debug("检测库存积压: 产品=%d, 仓库=%d", product_id, warehouse_id)
 
+        # 按产品类型使用不同的超储阈值
+        from app.models.product import Product
+        product_stmt = select(Product.product_type).where(Product.id == product_id)
+        product_result = await self.db.execute(product_stmt)
+        product_type = product_result.scalar_one_or_none() or "finished_good"
+        
+        # 原材料超储阈值60天，产成品超储阈值90天
+        max_days = 60 if product_type == "raw_material" else 90
+
         snapshot = await self._get_latest_snapshot(product_id, warehouse_id)
         if snapshot is None:
             return None
@@ -355,6 +364,56 @@ class AnomalyService:
 
         return None
 
+    async def detect_aging_anomaly(
+        self, product_id: int, warehouse_id: int
+    ) -> dict | None:
+        """
+        检测库龄异常 - 识别呆滞物料
+        
+        原材料呆滞: 建议退回供应商或报废
+        产成品滞销: 建议促销或降价
+        """
+        from app.models.inventory_snapshot import InventorySnapshot
+        from app.models.product import Product
+        
+        # 获取产品类型
+        product_stmt = select(Product.product_type).where(Product.id == product_id)
+        product_result = await self.db.execute(product_stmt)
+        product_type = product_result.scalar_one_or_none() or "finished_good"
+        
+        # 获取最新快照
+        stmt = (
+            select(InventorySnapshot)
+            .where(
+                and_(
+                    InventorySnapshot.product_id == product_id,
+                    InventorySnapshot.warehouse_id == warehouse_id,
+                )
+            )
+            .order_by(desc(InventorySnapshot.timestamp))
+            .limit(1)
+        )
+        result = await self.db.execute(stmt)
+        snapshot = result.scalar_one_or_none()
+        
+        if not snapshot or snapshot.aging_tier != "slow_moving":
+            return None
+        
+        if product_type == "raw_material":
+            suggestion = "原材料呆滞，建议：1.评估退回供应商可能性 2.调整采购计划减少进货 3.与生产部门确认近期用料需求"
+        else:
+            suggestion = "产成品滞销，建议：1.评估降价促销方案 2.调拨到需求量大的区域 3.与销售部门确认后续订单计划"
+        
+        return {
+            "type": "aging_anomaly",
+            "product_id": product_id,
+            "warehouse_id": warehouse_id,
+            "severity": "high",
+            "age_days": snapshot.age_days,
+            "product_type": product_type,
+            "message": f"{'原材料' if product_type == 'raw_material' else '产成品'}(ID:{product_id}) 库龄已达 {snapshot.age_days} 天，属于呆滞物料。{suggestion}",
+        }
+
     async def scan_all_products(self) -> list[dict]:
         """
         扫描所有活跃产品的异常情况
@@ -401,6 +460,11 @@ class AnomalyService:
                         anomaly = await check_coro
                         if anomaly is not None:
                             all_anomalies.append(anomaly)
+
+                    # 库龄异常检测
+                    aging_anomaly = await self.detect_aging_anomaly(product_id, warehouse_id)
+                    if aging_anomaly:
+                        all_anomalies.append(aging_anomaly)
 
                 except Exception as e:
                     logger.error(

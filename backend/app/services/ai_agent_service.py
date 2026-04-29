@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # -*- coding: utf-8 -*-
 """
 AI 智能助手服务
@@ -20,19 +22,26 @@ logger = logging.getLogger(__name__)
 
 # ==================== 系统提示词 ====================
 
-SYSTEM_PROMPT = """你是一个专业的供应链库存管理助手。你可以帮助用户：
-1. 查询产品库存状态和趋势
-2. 分析库存风险（缺货、积压）
-3. 生成库存调整建议（采购量、调拨方案、促销建议）
-4. 查看告警信息
-5. 分析产品周转情况（畅销品、滞销品）
+SYSTEM_PROMPT = """你是一个专业的制造业供应链库存管理助手。你可以帮助用户：
 
-回答要求：
-- 使用专业但易懂的中文
-- 数据引用要准确
-- 建议要具体可执行（包含具体数量、优先级）
-- 如果数据不足，明确说明
-- 建议格式：先分析现状，再给出建议，最后说明理由"""
+1. 查询产品库存状态和趋势（区分原材料和产成品）
+2. 分析库存风险（原材料断料、产成品缺货、呆滞物料）
+3. 生成差异化库存调整建议：
+   - 原材料缺货: 建议紧急采购，考虑供应商提前期和替代物料
+   - 原材料积压: 建议调整采购计划，与生产计划对齐，评估退回供应商
+   - 产成品缺货: 建议加急生产，考虑生产周期和跨仓库调拨
+   - 产成品滞销: 建议促销、降价或调拨到需求区域
+4. 查看告警信息（按产品类型和库龄分层筛选）
+5. 分析产品周转情况（ABC分类、库龄分析、库存健康指数）
+
+制造业库存管理要点：
+- 原材料: 采购驱动，安全库存=日均消耗×采购提前期
+- 产成品: 需求驱动，安全库存=日均销售×生产周期
+- 库龄分层: 0-30天正常、31-90天关注、90天以上呆滞
+- KPI目标: 周转率5-10次/年、缺货率<5%、积压率<10%、库存健康指数>0.85
+
+请用中文回答用户问题，提供专业、可执行的库存管理建议。
+"""
 
 
 # ==================== 依赖检查 ====================
@@ -354,6 +363,9 @@ async def _suggest_inventory_adjustment_tool(db: AsyncSession, product_sku: str)
     # 使用预测日均需求（如果有），否则使用历史日均需求
     effective_daily_demand = avg_forecast_demand if avg_forecast_demand > 0 else avg_daily_demand
 
+    # 获取产品类型
+    product_type = getattr(product, 'product_type', 'finished_good') if product else 'finished_good'
+
     # 计算关键指标
     safety_stock_qty = effective_daily_demand * product.safety_stock_days
     reorder_point = effective_daily_demand * product.lead_time_days + safety_stock_qty
@@ -386,30 +398,61 @@ async def _suggest_inventory_adjustment_tool(db: AsyncSession, product_sku: str)
     suggestions = []
 
     if total_available <= 0:
-        suggestions.append(
-            f"[紧急-高优先级] 产品已缺货！建议立即采购至少 "
-            f"{reorder_point:.0f} {product.unit} 以恢复安全库存水平。"
-        )
+        if product_type == "raw_material":
+            suggestions.append(
+                f"[紧急-高优先级] 原材料已断料！建议紧急联系供应商采购，"
+                f"供应商提前期 {product.lead_time_days} 天，建议采购量 {reorder_point:.0f} {product.unit}。"
+                f"同时评估是否有替代物料可用。"
+            )
+        else:
+            suggestions.append(
+                f"[紧急-高优先级] 产成品已缺货！建议安排加急生产，"
+                f"生产周期 {product.lead_time_days} 天，建议生产量 {reorder_point:.0f} {product.unit}。"
+                f"同时考虑跨仓库调拨满足紧急需求。"
+            )
     elif total_available < safety_stock_qty:
         shortage = safety_stock_qty - total_available
-        suggestions.append(
-            f"[紧急-高优先级] 库存低于安全库存 {shortage:.0f} {product.unit}，"
-            f"建议立即补货 {reorder_point - total_available:.0f} {product.unit}。"
-        )
+        if product_type == "raw_material":
+            suggestions.append(
+                f"[紧急-高优先级] 原材料库存低于安全库存 {shortage:.0f} {product.unit}，"
+                f"存在断料风险。建议紧急联系供应商采购，"
+                f"供应商提前期 {product.lead_time_days} 天，建议采购量 {reorder_point - total_available:.0f} {product.unit}。"
+            )
+        else:
+            suggestions.append(
+                f"[紧急-高优先级] 产成品库存低于安全库存 {shortage:.0f} {product.unit}，"
+                f"存在缺货风险。建议安排加急生产，"
+                f"生产周期 {product.lead_time_days} 天，建议生产量 {reorder_point - total_available:.0f} {product.unit}。"
+            )
     elif days_of_stock < product.lead_time_days:
         shortage = effective_daily_demand * (product.lead_time_days - days_of_stock + product.safety_stock_days)
-        suggestions.append(
-            f"[警告-中优先级] 库存可维持 {days_of_stock:.1f} 天，"
-            f"小于补货提前期 {product.lead_time_days} 天，"
-            f"建议尽快补货 {shortage:.0f} {product.unit}。"
-        )
+        if product_type == "raw_material":
+            suggestions.append(
+                f"[警告-中优先级] 原材料库存可维持 {days_of_stock:.1f} 天，"
+                f"小于采购提前期 {product.lead_time_days} 天，"
+                f"建议尽快采购 {shortage:.0f} {product.unit}，避免生产线停工。"
+            )
+        else:
+            suggestions.append(
+                f"[警告-中优先级] 产成品库存可维持 {days_of_stock:.1f} 天，"
+                f"小于生产周期 {product.lead_time_days} 天，"
+                f"建议尽快安排生产 {shortage:.0f} {product.unit}，同时考虑跨仓库调拨。"
+            )
     elif days_of_stock > 90:
         excess = total_available - effective_daily_demand * 60
         if excess > 0:
-            suggestions.append(
-                f"[注意-低优先级] 库存可维持 {days_of_stock:.1f} 天，存在积压风险。"
-                f"建议考虑促销或调拨减少 {excess:.0f} {product.unit} 库存。"
-            )
+            if product_type == "raw_material":
+                suggestions.append(
+                    f"[注意-低优先级] 原材料库存可维持 {days_of_stock:.1f} 天，存在积压风险。"
+                    f"建议暂停或减少该原料采购，与生产部门确认近期用料计划，"
+                    f"评估退回供应商，减少 {excess:.0f} {product.unit} 库存。"
+                )
+            else:
+                suggestions.append(
+                    f"[注意-低优先级] 产成品库存可维持 {days_of_stock:.1f} 天，存在滞销风险。"
+                    f"建议评估降价促销方案，调拨到需求量大的区域仓库，"
+                    f"与销售部门确认后续订单计划，减少 {excess:.0f} {product.unit} 库存。"
+                )
     else:
         suggestions.append(
             f"[正常] 库存水平健康，可维持 {days_of_stock:.1f} 天。"
@@ -734,6 +777,66 @@ async def _get_fast_moving_products_tool(db: AsyncSession, limit: int = 10) -> s
     return "\n".join(lines)
 
 
+async def _get_aging_analysis_tool(db: AsyncSession, product_sku: str = "") -> str:
+    """获取库龄分析数据"""
+    try:
+        from app.services.inventory_analysis_service import InventoryAnalysisService
+        service = InventoryAnalysisService(db)
+
+        product_id = None
+        if product_sku:
+            from sqlalchemy import select
+            from app.models.product import Product
+            stmt = select(Product.id).where(Product.sku == product_sku)
+            result = await db.execute(stmt)
+            product_id = result.scalar_one_or_none()
+
+        result = await service.analyze_aging(product_id=product_id)
+        return f"库龄分析结果：{result}"
+    except Exception as e:
+        return f"获取库龄分析失败: {str(e)}"
+
+
+async def _get_abc_classification_tool(db: AsyncSession, warehouse_id: int = 0) -> str:
+    """获取ABC分类数据"""
+    try:
+        from app.services.inventory_analysis_service import InventoryAnalysisService
+        service = InventoryAnalysisService(db)
+        items = await service.abc_classification(
+            warehouse_id=warehouse_id if warehouse_id > 0 else None
+        )
+        if not items:
+            return "暂无ABC分类数据"
+        summary = f"共 {len(items)} 项："
+        for cls in ["A", "B", "C"]:
+            cls_items = [i for i in items if i["abc_class"] == cls]
+            if cls_items:
+                total_val = sum(i["total_value"] for i in cls_items)
+                summary += f"{cls}类{len(cls_items)}项(金额{total_val:.0f}) "
+        return summary
+    except Exception as e:
+        return f"获取ABC分类失败: {str(e)}"
+
+
+async def _get_inventory_health_tool(db: AsyncSession, warehouse_id: int = 0) -> str:
+    """获取库存健康指数"""
+    try:
+        from app.services.inventory_analysis_service import InventoryAnalysisService
+        service = InventoryAnalysisService(db)
+        result = await service.get_inventory_health_index(
+            warehouse_id=warehouse_id if warehouse_id > 0 else None
+        )
+        return (
+            f"库存健康指数: {result['health_index']:.2%}，"
+            f"总库存金额: {result['total_value']:.0f}，"
+            f"呆滞占比: {result['slow_moving_ratio']:.2%}，"
+            f"关注占比: {result['attention_ratio']:.2%}，"
+            f"正常占比: {result['normal_ratio']:.2%}"
+        )
+    except Exception as e:
+        return f"获取库存健康指数失败: {str(e)}"
+
+
 # ==================== AI Agent 服务 ====================
 
 class AIAgentService:
@@ -866,6 +969,33 @@ class AIAgentService:
                     "获取周转率最高的产品列表（畅销品）。"
                     "返回按周转率从高到低排列的产品，包含库存量、出库量和周转率。"
                     "参数: limit - 返回数量（整数，默认10）。"
+                ),
+            ),
+            StructuredTool.from_function(
+                coroutine=lambda product_sku="": _get_aging_analysis_tool(self.db, product_sku),
+                name="get_aging_analysis",
+                description=(
+                    "获取库龄分析数据，按库龄分层统计库存。"
+                    "返回各库龄层级的物料数量和金额分布。"
+                    "参数: product_sku - 产品SKU编码（字符串，可选，为空时返回全部产品汇总）。"
+                ),
+            ),
+            StructuredTool.from_function(
+                coroutine=lambda warehouse_id=0: _get_abc_classification_tool(self.db, warehouse_id),
+                name="get_abc_classification",
+                description=(
+                    "获取ABC分类数据，按库存金额占比对物料进行分类。"
+                    "返回A类（高价值）、B类（中价值）、C类（低价值）物料统计。"
+                    "参数: warehouse_id - 仓库ID（整数，0表示全部仓库，默认0）。"
+                ),
+            ),
+            StructuredTool.from_function(
+                coroutine=lambda warehouse_id=0: _get_inventory_health_tool(self.db, warehouse_id),
+                name="get_inventory_health",
+                description=(
+                    "获取库存健康指数，综合评估库存状态。"
+                    "返回健康指数、总库存金额、呆滞占比、关注占比、正常占比。"
+                    "参数: warehouse_id - 仓库ID（整数，0表示全部仓库，默认0）。"
                 ),
             ),
         ]

@@ -32,6 +32,7 @@ async def get_products(
     page: int = Query(default=1, ge=1, description="页码"),
     page_size: int = Query(default=20, ge=1, le=100, description="每页数量"),
     category: str | None = Query(default=None, description="分类筛选"),
+    product_type: str | None = Query(default=None, description="产品类型筛选: raw_material/finished_good"),
     is_active: bool | None = Query(default=None, description="是否启用"),
     search: str | None = Query(default=None, min_length=1, description="搜索关键词"),
     db: AsyncSession = Depends(get_db),
@@ -48,6 +49,7 @@ async def get_products(
         skip=skip,
         limit=page_size,
         category=category,
+        product_type=product_type,
         is_active=is_active,
         search=search,
     )

@@ -46,6 +46,7 @@ class ProductCRUD(BaseCRUD[Product]):
         skip: int = 0,
         limit: int = 100,
         category: Optional[str] = None,
+        product_type: Optional[str] = None,
         is_active: Optional[bool] = None,
         search: Optional[str] = None,
     ) -> tuple[Sequence[Product], int]:
@@ -69,6 +70,8 @@ class ProductCRUD(BaseCRUD[Product]):
 
         # 应用过滤条件
         conditions = []
+        if product_type is not None:
+            conditions.append(Product.product_type == product_type)
         if category is not None:
             conditions.append(Product.category == category)
         if is_active is not None:

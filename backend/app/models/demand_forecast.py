@@ -103,6 +103,17 @@ class DemandForecast(Base):
         comment="建议再订货点",
     )
 
+    product_type: Mapped[str | None] = mapped_column(
+        String(20),
+        nullable=True,
+        comment="产品类型: raw_material/finished_good",
+    )
+    calculation_basis: Mapped[str | None] = mapped_column(
+        String(20),
+        nullable=True,
+        comment="计算基础: consumption(耗用)/sales(销售)",
+    )
+
     # ==================== 时间戳 ====================
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

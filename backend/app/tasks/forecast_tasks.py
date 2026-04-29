@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # -*- coding: utf-8 -*-
 """
 Celery 需求预测任务
@@ -88,6 +90,14 @@ def run_daily_forecast(self, forecast_days: int = 14) -> dict:
                 for product_id in product_ids:
                     for warehouse_id in warehouse_ids:
                         try:
+                            # 获取产品信息
+                            product_stmt = select(Product).where(Product.id == product_id)
+                            product_result = await session.execute(product_stmt)
+                            product = product_result.scalar_one_or_none()
+
+                            # 获取产品类型
+                            product_type = getattr(product, 'product_type', 'finished_good') if product else 'finished_good'
+
                             # 执行预测
                             results = await forecast_service.run_forecast(
                                 product_id=product_id,
@@ -120,6 +130,7 @@ def run_daily_forecast(self, forecast_days: int = 14) -> dict:
                                     model_params=r["model_params"],
                                     safety_stock=safety_stock_result.get("safety_stock"),
                                     reorder_point=safety_stock_result.get("reorder_point"),
+                                    product_type=product_type,
                                 )
                                 session.add(forecast_record)
 

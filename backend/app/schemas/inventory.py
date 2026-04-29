@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # -*- coding: utf-8 -*-
 """
 库存数据模式
@@ -25,6 +27,10 @@ class InventorySnapshotResponse(BaseModel):
     total_value: Decimal
     source: str
     extra_data: Optional[dict] = None
+    batch_no: Optional[str] = None
+    expiry_date: Optional[datetime] = None
+    age_days: int = 0
+    aging_tier: str = "normal"
     timestamp: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
@@ -41,6 +47,8 @@ class InventoryTransactionCreate(BaseModel):
     reason: Optional[str] = Field(default=None, description="变动原因")
     operator_id: Optional[int] = Field(default=None, description="操作人ID")
     extra_data: Optional[dict] = Field(default=None, description="扩展数据（JSON）")
+    batch_no: Optional[str] = Field(default=None, max_length=50, description="批次号")
+    expiry_date: Optional[datetime] = Field(default=None, description="有效期")
 
 
 class InventoryTransactionResponse(BaseModel):
@@ -57,6 +65,8 @@ class InventoryTransactionResponse(BaseModel):
     reason: Optional[str] = None
     operator_id: Optional[int] = None
     extra_data: Optional[dict] = None
+    batch_no: Optional[str] = None
+    expiry_date: Optional[datetime] = None
     created_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
@@ -74,3 +84,9 @@ class InventoryOverviewResponse(BaseModel):
     total_transactions_today: int = Field(description="今日事务数")
     inbound_today: int = Field(description="今日入库数")
     outbound_today: int = Field(description="今日出库数")
+    raw_material_count: int = Field(default=0, description="原材料数量")
+    finished_good_count: int = Field(default=0, description="产成品数量")
+    slow_moving_count: int = Field(default=0, description="呆滞物料数量")
+    slow_moving_value: Decimal = Field(default=Decimal("0"), description="呆滞物料金额")
+    inventory_health_index: float = Field(default=0.0, description="库存健康指数")
+    avg_turnover_days: float = Field(default=0.0, description="平均周转天数")

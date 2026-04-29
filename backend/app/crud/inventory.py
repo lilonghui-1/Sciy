@@ -152,6 +152,7 @@ class InventoryCRUD:
         product_id: Optional[int] = None,
         warehouse_id: Optional[int] = None,
         transaction_type: Optional[str] = None,
+        batch_no: Optional[str] = None,
         skip: int = 0,
         limit: int = 100,
     ) -> tuple[Sequence[InventoryTransaction], int]:
@@ -179,6 +180,8 @@ class InventoryCRUD:
             conditions.append(InventoryTransaction.warehouse_id == warehouse_id)
         if transaction_type is not None:
             conditions.append(InventoryTransaction.transaction_type == transaction_type)
+        if batch_no is not None:
+            conditions.append(InventoryTransaction.batch_no == batch_no)
 
         for condition in conditions:
             stmt = stmt.where(condition)

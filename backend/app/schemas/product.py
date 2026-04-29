@@ -26,6 +26,8 @@ class ProductCreate(BaseModel):
     supplier_id: int = Field(..., description="供应商ID")
     lead_time_days: int = Field(default=7, ge=0, description="补货提前期(天)")
     safety_stock_days: int = Field(default=14, ge=0, description="安全库存天数")
+    product_type: str = Field(default="finished_good", description="产品类型: raw_material/finished_good")
+    production_cycle_days: int = Field(default=7, ge=0, description="生产周期(天)")
 
 
 class ProductUpdate(BaseModel):
@@ -41,6 +43,8 @@ class ProductUpdate(BaseModel):
     supplier_id: Optional[int] = Field(default=None, description="供应商ID")
     lead_time_days: Optional[int] = Field(default=None, ge=0, description="补货提前期(天)")
     safety_stock_days: Optional[int] = Field(default=None, ge=0, description="安全库存天数")
+    product_type: Optional[str] = Field(default=None, description="产品类型: raw_material/finished_good")
+    production_cycle_days: Optional[int] = Field(default=None, ge=0, description="生产周期(天)")
     is_active: Optional[bool] = Field(default=None, description="是否启用")
 
 
@@ -59,6 +63,8 @@ class ProductResponse(BaseModel):
     supplier_id: int
     lead_time_days: int
     safety_stock_days: int
+    product_type: str
+    production_cycle_days: int
     is_active: bool
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
@@ -77,6 +83,7 @@ class ProductListResponse(BaseModel):
     unit_cost: Decimal
     selling_price: Decimal
     is_active: bool
+    product_type: str
     created_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}

@@ -78,6 +78,18 @@ class InventoryTransaction(Base):
         nullable=True,
         comment="参考单号",
     )
+    batch_no: Mapped[str | None] = mapped_column(
+        String(50),
+        nullable=True,
+        index=True,
+        comment="批次号",
+    )
+    expiry_date: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+        comment="有效期",
+    )
     reason: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,

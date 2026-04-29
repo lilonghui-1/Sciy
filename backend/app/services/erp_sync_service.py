@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # -*- coding: utf-8 -*-
 """
 ERP 同步服务
@@ -331,6 +333,16 @@ class ErpSyncService:
         if erp_code:
             product_data["erp_code"] = erp_code
 
+        # 同步产品类型
+        product_type = item.get("product_type")
+        if product_type in ("raw_material", "finished_good"):
+            product_data["product_type"] = product_type
+
+        # 同步生产周期
+        production_cycle = item.get("production_cycle_days")
+        if production_cycle is not None:
+            product_data["production_cycle_days"] = int(production_cycle)
+
         if product is not None:
             # 更新已有产品
             update_data = {k: v for k, v in product_data.items() if v is not None}
@@ -592,6 +604,36 @@ class ErpSyncService:
 
         total_value = float(unit_cost * quantity)
 
+        # 批次信息
+        batch_no = item.get("batch_no")
+        expiry_date = None
+        expiry_date_str = item.get("expiry_date")
+        if expiry_date_str:
+            from datetime import datetime
+            try:
+                expiry_date = datetime.fromisoformat(expiry_date_str)
+            except (ValueError, TypeError):
+                pass
+
+        # 计算库龄
+        age_days = 0
+        inbound_date_str = item.get("inbound_date")
+        if inbound_date_str:
+            from datetime import datetime, timezone
+            try:
+                inbound_date = datetime.fromisoformat(inbound_date_str)
+                age_days = (datetime.now(timezone.utc) - inbound_date).days
+            except (ValueError, TypeError):
+                pass
+
+        # 确定库龄分层
+        if age_days <= 30:
+            aging_tier = "normal"
+        elif age_days <= 90:
+            aging_tier = "attention"
+        else:
+            aging_tier = "slow_moving"
+
         # 创建库存快照
         await inventory_crud.create_snapshot(
             self.db,
@@ -602,5 +644,9 @@ class ErpSyncService:
                 "unit_cost": float(unit_cost),
                 "total_value": total_value,
                 "source": "erp",
+                "batch_no": batch_no,
+                "expiry_date": expiry_date,
+                "age_days": age_days,
+                "aging_tier": aging_tier,
             },
         )

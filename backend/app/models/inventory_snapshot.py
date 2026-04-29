@@ -89,6 +89,29 @@ class InventorySnapshot(Base):
         default="manual",
         comment="数据来源: manual/erp/import",
     )
+    batch_no: Mapped[str | None] = mapped_column(
+        String(50),
+        nullable=True,
+        index=True,
+        comment="批次号",
+    )
+    expiry_date: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="有效期",
+    )
+    age_days: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        comment="库龄（天）",
+    )
+    aging_tier: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="normal",
+        comment="库龄分层: normal(0-30天)/attention(31-90天)/slow_moving(90天以上)",
+    )
     extra_data: Mapped[dict | None] = mapped_column(
         JSON,
         nullable=True,

@@ -175,6 +175,38 @@ class AlertEngine:
 
     # ==================== 上下文构建 ====================
 
+    def _is_rule_applicable(self, rule, product, snapshot) -> bool:
+        """
+        检查规则是否适用于该产品
+        
+        根据规则的作用域字段（product_type, category_scope, aging_tier_scope）
+        判断规则是否应该应用于当前产品。
+        """
+        # 获取产品类型
+        product_type = getattr(product, 'product_type', None) or "finished_good"
+        
+        # 产品类型过滤
+        rule_product_type = getattr(rule, 'product_type', None)
+        if rule_product_type and product_type != rule_product_type:
+            return False
+        
+        # 品类过滤
+        rule_category_scope = getattr(rule, 'category_scope', None)
+        if rule_category_scope:
+            allowed_categories = [c.strip() for c in rule_category_scope.split(",")]
+            product_category = getattr(product, 'category', None)
+            if product_category not in allowed_categories:
+                return False
+        
+        # 库龄分层过滤
+        rule_aging_tier_scope = getattr(rule, 'aging_tier_scope', None)
+        if rule_aging_tier_scope and snapshot:
+            snapshot_aging_tier = getattr(snapshot, 'aging_tier', None)
+            if snapshot_aging_tier != rule_aging_tier_scope:
+                return False
+        
+        return True
+
     async def _build_context(
         self,
         product_id: int,
@@ -275,6 +307,12 @@ class AlertEngine:
         else:
             context["turnover_rate"] = 0.0
 
+        context["product_type"] = getattr(product, 'product_type', 'finished_good')
+        context["aging_tier"] = getattr(snapshot, 'aging_tier', 'unknown') if snapshot else 'unknown'
+        context["age_days"] = getattr(snapshot, 'age_days', 0) if snapshot else 0
+        context["batch_no"] = getattr(snapshot, 'batch_no', None) if snapshot else None
+        context["expiry_date"] = str(getattr(snapshot, 'expiry_date', '')) if snapshot and getattr(snapshot, 'expiry_date', None) else None
+
         logger.debug(
             "构建上下文完成: 产品=%d, 仓库=%d, 字段数=%d",
             product_id, warehouse_id, len(context),
@@ -318,12 +356,38 @@ class AlertEngine:
         if not rules:
             return []
 
+        # 获取产品和快照用于作用域过滤
+        product_stmt = select(Product).where(Product.id == product_id)
+        product_result = await self.db.execute(product_stmt)
+        product = product_result.scalar_one_or_none()
+
+        snapshot_stmt = (
+            select(InventorySnapshot)
+            .where(
+                and_(
+                    InventorySnapshot.product_id == product_id,
+                    InventorySnapshot.warehouse_id == warehouse_id,
+                )
+            )
+            .order_by(desc(InventorySnapshot.timestamp))
+            .limit(1)
+        )
+        snapshot_result = await self.db.execute(snapshot_stmt)
+        snapshot = snapshot_result.scalar_one_or_none()
+
+        # 按作用域过滤规则
+        applicable_rules = []
+        for rule in rules:
+            if not self._is_rule_applicable(rule, product, snapshot):
+                continue
+            applicable_rules.append(rule)
+
         # 构建上下文
         context = await self._build_context(product_id, warehouse_id)
 
         triggered_events: list[AlertEvent] = []
 
-        for rule in rules:
+        for rule in applicable_rules:
             try:
                 # 评估规则条件
                 is_triggered = self._evaluate_conditions(rule.conditions, context)

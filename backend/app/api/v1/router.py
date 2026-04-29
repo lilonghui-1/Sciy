@@ -22,6 +22,7 @@ from app.api.v1.notifications import router as notifications_router
 from app.api.v1.erp_sync import router as erp_sync_router
 from app.api.v1.import_export import router as import_export_router
 from app.api.v1.ai_chat import router as ai_chat_router
+from app.api.v1.inventory_analysis import router as inventory_analysis_router
 
 
 # ==================== 聚合路由器 ====================
@@ -40,3 +41,4 @@ api_router.include_router(notifications_router)
 api_router.include_router(erp_sync_router)
 api_router.include_router(import_export_router)
 api_router.include_router(ai_chat_router)
+api_router.include_router(inventory_analysis_router)

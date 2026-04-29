@@ -71,11 +71,24 @@ class SafetyStockService:
             product_id, warehouse_id, service_level,
         )
 
+        # 获取产品类型，差异化计算
+        product_stmt = select(Product.product_type, Product.production_cycle_days).where(Product.id == product_id)
+        product_result = await self.db.execute(product_stmt)
+        product_row = product_result.one_or_none()
+        product_type = product_row[0] if product_row else "finished_good"
+        production_cycle = product_row[1] if product_row else 7
+
         # 获取产品配置的补货提前期
         if lead_time_days is None:
             lead_time_days = await self._get_lead_time(product_id)
             if lead_time_days is None:
                 lead_time_days = 7  # 默认7天
+
+        # 原材料使用采购提前期，产成品使用生产周期
+        if product_type == "raw_material":
+            effective_lead_time = lead_time_days
+        else:
+            effective_lead_time = production_cycle
 
         # 获取历史需求数据（至少30天）
         days_lookback = max(30, lead_time_days * 2)
@@ -129,10 +142,10 @@ class SafetyStockService:
         z_score = float(stats.norm.ppf(service_level))
 
         # 安全库存 = Z * sigma * sqrt(LT)
-        safety_stock = z_score * demand_std * np.sqrt(lead_time_days)
+        safety_stock = z_score * demand_std * np.sqrt(effective_lead_time)
 
         # 再订货点 = 日均需求 * 提前期 + 安全库存
-        reorder_point = avg_daily_demand * lead_time_days + safety_stock
+        reorder_point = avg_daily_demand * effective_lead_time + safety_stock
 
         result_dict = {
             "safety_stock": round(float(safety_stock), 2),
@@ -141,9 +154,12 @@ class SafetyStockService:
             "demand_std": round(demand_std, 2),
             "z_score": round(z_score, 4),
             "service_level": service_level,
-            "lead_time_days": lead_time_days,
+            "lead_time_days": effective_lead_time,
             "method": "statistical",
         }
+
+        result_dict["product_type"] = product_type
+        result_dict["calculation_basis"] = "consumption" if product_type == "raw_material" else "sales"
 
         logger.info(
             "安全库存计算完成: 产品=%d, 仓库=%d, SS=%.2f, ROP=%.2f, 方法=%s",

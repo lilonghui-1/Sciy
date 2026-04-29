@@ -68,6 +68,12 @@ class ForecastService:
         """
         since = datetime.now(timezone.utc) - timedelta(days=days)
 
+        # 获取产品类型，按类型区分数据源
+        from app.models.product import Product
+        product_stmt = select(Product.product_type).where(Product.id == product_id)
+        product_result = await self.db.execute(product_stmt)
+        product_type = product_result.scalar_one_or_none() or "finished_good"
+
         stmt = (
             select(
                 cast(InventoryTransaction.created_at, Date).label("date"),
@@ -98,6 +104,8 @@ class ForecastService:
         df = pd.DataFrame(rows, columns=["date", "demand"])
         df["date"] = pd.to_datetime(df["date"])
         df["demand"] = df["demand"].astype(float)
+
+        df.attrs["product_type"] = product_type
 
         logger.info(
             "产品 %d 仓库 %d 获取到 %d 天的历史需求数据",
@@ -499,6 +507,18 @@ class ForecastService:
             "开始预测: 产品=%d, 仓库=%d, 天数=%d, 模型=%s",
             product_id, warehouse_id, forecast_days, model_name,
         )
+
+        # 获取产品类型
+        from app.models.product import Product
+        product_stmt = select(Product.product_type).where(Product.id == product_id)
+        product_result = await self.db.execute(product_stmt)
+        product_type = product_result.scalar_one_or_none() or "finished_good"
+        
+        # 原材料使用较长的季节性周期（30天），产成品使用较短周期（7天）
+        if product_type == "raw_material":
+            seasonal_period = 30
+        else:
+            seasonal_period = 7
 
         # 获取历史数据
         hist_df = await self.get_historical_data(product_id, warehouse_id, days=90)
