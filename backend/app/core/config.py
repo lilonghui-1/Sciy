@@ -82,6 +82,26 @@ class Settings(BaseSettings):
     openai_temperature: float = Field(default=0.7, description="OpenAI 模型温度参数")
     openai_max_tokens: int = Field(default=2000, description="OpenAI 最大生成 token 数")
 
+    # ==================== OpenAI 扩展配置 ====================
+    openai_base_url: Optional[str] = Field(
+        default=None,
+        description="OpenAI API 基础 URL（支持自定义端点、Azure OpenAI、代理服务等）",
+    )
+
+    # ==================== 预测 LLM 配置 ====================
+    forecast_llm_enabled: bool = Field(
+        default=False,
+        description="是否启用 LLM 预测模式（调用外部大模型进行库存预测）",
+    )
+    forecast_llm_model: str = Field(
+        default="gpt-4o-mini",
+        description="预测专用 LLM 模型名称",
+    )
+    forecast_llm_temperature: float = Field(
+        default=0.3,
+        description="预测 LLM 温度参数（低温度保证预测稳定性）",
+    )
+
     # ==================== ERP 系统配置 ====================
     erp_api_url: str = Field(
         default="http://localhost:8080/api",

@@ -905,12 +905,16 @@ class AIAgentService:
         from langchain_core.tools import StructuredTool
 
         # 初始化 LLM
-        self.llm = ChatOpenAI(
-            model="gpt-4o-mini",
-            temperature=0.3,
-            api_key=settings.openai_api_key,
-            max_tokens=settings.openai_max_tokens,
-        )
+        llm_kwargs = {
+            "model": settings.openai_model,
+            "temperature": settings.openai_temperature,
+            "api_key": settings.openai_api_key,
+            "max_tokens": settings.openai_max_tokens,
+        }
+        if settings.openai_base_url:
+            llm_kwargs["base_url"] = settings.openai_base_url
+
+        self.llm = ChatOpenAI(**llm_kwargs)
 
         # 创建工具列表，每个工具闭包捕获 self.db
         tools = [

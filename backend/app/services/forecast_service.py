@@ -532,6 +532,51 @@ class ForecastService:
         series = hist_df["demand"]
 
         # 选择模型
+        # LLM 预测分支
+        if model_name and model_name.upper() == "LLM":
+            from app.services.llm_forecast_service import LLMForecastService
+            from app.models.product import Product as ProductModel
+
+            llm_service = LLMForecastService()
+
+            # 获取产品信息
+            product_stmt = select(ProductModel).where(ProductModel.id == product_id)
+            product_result = await self.db.execute(product_stmt)
+            product = product_result.scalar_one_or_none()
+
+            product_info = {
+                "name": getattr(product, 'name', '') if product else '',
+                "sku": getattr(product, 'sku', '') if product else '',
+                "product_type": getattr(product, 'product_type', 'finished_good') if product else 'finished_good',
+                "unit": getattr(product, 'unit', '个') if product else '个',
+            }
+
+            # 准备历史数据
+            historical_data = [
+                {"date": row["date"].strftime("%Y-%m-%d") if hasattr(row["date"], 'strftime') else str(row["date"]), "demand": float(row["demand"])}
+                for _, row in hist_df.iterrows()
+            ]
+
+            try:
+                llm_results = await llm_service.run_forecast(
+                    product_id=product_id,
+                    warehouse_id=warehouse_id,
+                    forecast_days=forecast_days,
+                    product_info=product_info,
+                    historical_data=historical_data,
+                )
+                logger.info(
+                    "LLM 预测完成: 产品=%d, 仓库=%d, 结果数=%d",
+                    product_id, warehouse_id, len(llm_results),
+                )
+                return llm_results
+            except (ValueError, RuntimeError) as e:
+                logger.warning(
+                    "LLM 预测失败，回退到统计模型: %s", e,
+                )
+                # 回退到自动选择统计模型
+                model_name = self.auto_select_model(series)
+
         if model_name is None:
             model_name = self.auto_select_model(series)
 

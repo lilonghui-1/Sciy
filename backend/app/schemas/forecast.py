@@ -38,7 +38,7 @@ class ForecastRunRequest(BaseModel):
     product_id: int = Field(..., description="产品ID")
     warehouse_id: Optional[int] = Field(default=None, description="仓库ID")
     forecast_days: int = Field(default=30, ge=1, le=365, description="预测天数")
-    model_name: str = Field(default="baseline", description="模型名称")
+    model_name: str = Field(default="auto", description="模型名称: auto/sma/ema/holt_winters/arima/llm")
 
 
 class BatchForecastRequest(BaseModel):
@@ -47,7 +47,7 @@ class BatchForecastRequest(BaseModel):
     product_ids: list[int] = Field(..., min_length=1, description="产品ID列表")
     warehouse_id: Optional[int] = Field(default=None, description="仓库ID")
     forecast_days: int = Field(default=30, ge=1, le=365, description="预测天数")
-    model_name: str = Field(default="baseline", description="模型名称")
+    model_name: str = Field(default="auto", description="模型名称: auto/sma/ema/holt_winters/arima/llm")
 
 
 class SafetyStockResponse(BaseModel):

@@ -98,12 +98,29 @@ def run_daily_forecast(self, forecast_days: int = 14) -> dict:
                             # 获取产品类型
                             product_type = getattr(product, 'product_type', 'finished_good') if product else 'finished_good'
 
-                            # 执行预测
-                            results = await forecast_service.run_forecast(
-                                product_id=product_id,
-                                warehouse_id=warehouse_id,
-                                forecast_days=forecast_days,
-                            )
+                            # 执行预测（支持配置默认模型）
+                            from app.core.config import get_settings
+                            _settings = get_settings()
+                            default_model = "llm" if _settings.forecast_llm_enabled else None
+                            
+                            try:
+                                results = await forecast_service.run_forecast(
+                                    product_id=product_id,
+                                    warehouse_id=warehouse_id,
+                                    forecast_days=forecast_days,
+                                    model_name=default_model,
+                                )
+                            except (ValueError, RuntimeError) as e:
+                                logger.warning(
+                                    "LLM 预测失败，回退到统计模型: 产品=%d, 错误=%s",
+                                    product_id, e,
+                                )
+                                results = await forecast_service.run_forecast(
+                                    product_id=product_id,
+                                    warehouse_id=warehouse_id,
+                                    forecast_days=forecast_days,
+                                    model_name=None,  # 自动选择统计模型
+                                )
 
                             if not results:
                                 skipped_count += 1
